@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import Shell from '../components/Shell';
 import Icon from '../components/Icon';
 import { uploadRecipients, sendBulk, getJob, sendOne } from '../api/messages';
+import { COUNTRIES, normalizeNumber } from '../utils/numbers';
 
 function EstimateCard({ count, settings }) {
   const delay = ((settings.minDelaySec + settings.maxDelaySec) / 2) || 15;
@@ -38,6 +40,7 @@ function BulkTab() {
   const [sending, setSending] = useState(false);
   const [job, setJob] = useState(null);
   const [error, setError] = useState('');
+  const [country, setCountry] = useState(COUNTRIES[0]); // default Sri Lanka
   const [settings] = useState({ minDelaySec: 8, maxDelaySec: 25, batchSize: 18, batchPauseMin: 4, dailyLimit: 100 });
   const fileRef = useRef(null);
   const pollRef = useRef(null);
@@ -48,11 +51,34 @@ function BulkTab() {
     setUploading(true);
     setError('');
     try {
-      const data = await uploadRecipients(file);
+      // 1. Read file in browser
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      // 2. Normalize each row's number using selected country
+      const normalized = [];
+      let skipped = 0;
+      for (const row of rows) {
+        const rawNumber = row.number ?? row.Number ?? row.phone ?? row.Phone ?? row.mobile ?? '';
+        const num = normalizeNumber(rawNumber, country.dial);
+        if (!num) { skipped++; continue; }
+        normalized.push({ ...row, number: num });
+      }
+      if (normalized.length === 0) {
+        setError(`No valid numbers found. Skipped ${skipped} rows.`);
+        return;
+      }
+
+      // 3. Build a clean CSV blob and upload it
+      const csv = XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(normalized));
+      const cleanFile = new File([csv], 'recipients-normalized.csv', { type: 'text/csv' });
+      const data = await uploadRecipients(cleanFile);
       setUploadId(data.uploadId);
-      setUploadInfo(data);
+      setUploadInfo({ ...data, clientSkipped: skipped });
     } catch (err) {
-      setError(err.response?.data?.error || 'Upload failed');
+      setError(err.response?.data?.error || err.message || 'Upload failed');
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -114,6 +140,25 @@ function BulkTab() {
           </div>
         )}
 
+        <div style={{ marginBottom: 14 }}>
+          <label className="label">Default country code</label>
+          <select
+            className="input"
+            value={country.code}
+            onChange={(e) => setCountry(COUNTRIES.find((c) => c.code === e.target.value) || COUNTRIES[0])}
+            style={{ fontSize: 14 }}
+          >
+            {COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.flag} {c.name} (+{c.dial})
+              </option>
+            ))}
+          </select>
+          <div style={{ fontSize: 11, color: '#636E72', marginTop: 4 }}>
+            Numbers without a country code will be auto-prefixed with +{country.dial}. Numbers starting with 0 will have the 0 replaced.
+          </div>
+        </div>
+
         <div style={{ marginBottom: 16 }}>
           <label className="label">Recipients file (CSV / XLSX)</label>
           <div
@@ -126,7 +171,8 @@ function BulkTab() {
             ) : uploadInfo ? (
               <div>
                 <div style={{ color: '#00B894', fontWeight: 600, fontSize: 14 }}>{uploadInfo.validCount} valid recipients</div>
-                {uploadInfo.invalidCount > 0 && <div style={{ color: '#E17055', fontSize: 12, marginTop: 4 }}>{uploadInfo.invalidCount} invalid rows skipped</div>}
+                {uploadInfo.invalidCount > 0 && <div style={{ color: '#E17055', fontSize: 12, marginTop: 4 }}>{uploadInfo.invalidCount} invalid rows skipped by server</div>}
+                {uploadInfo.clientSkipped > 0 && <div style={{ color: '#E17055', fontSize: 12, marginTop: 2 }}>{uploadInfo.clientSkipped} rows skipped (invalid format)</div>}
                 <div style={{ color: '#6C5CE7', fontSize: 12, marginTop: 6 }}>Click to replace file</div>
               </div>
             ) : (
