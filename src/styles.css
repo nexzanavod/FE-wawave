@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+Sinhala:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap');
 
 :root {
   --violet: #6C5CE7;
@@ -22,8 +22,8 @@
   --violet-bg: #F0EDFF;
   --card-shadow: 0 2px 8px rgba(108, 92, 231, 0.06);
   --card-shadow-hover: 0 4px 16px rgba(108, 92, 231, 0.10);
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-sans: 'Inter', 'Noto Sans Sinhala', 'Noto Sans Tamil', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Noto Sans Sinhala', 'Noto Sans Tamil', ui-monospace, monospace;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
