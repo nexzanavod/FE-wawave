@@ -51,9 +51,18 @@ function BulkTab() {
     setUploading(true);
     setError('');
     try {
-      // 1. Read file in browser
-      const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: 'array' });
+      // 1. Read file in browser. CSVs are decoded as UTF-8 explicitly
+      // (SheetJS array-mode default falls back to Latin-1 and mangles
+      // non-Latin characters like Sinhala/Tamil/emoji into mojibake).
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      let workbook;
+      if (ext === 'csv') {
+        const text = await file.text(); // UTF-8 by default
+        workbook = XLSX.read(text, { type: 'string' });
+      } else {
+        const buffer = await file.arrayBuffer();
+        workbook = XLSX.read(buffer, { type: 'array' });
+      }
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
@@ -71,9 +80,9 @@ function BulkTab() {
         return;
       }
 
-      // 3. Build a clean CSV blob and upload it
+      // 3. Build a clean CSV blob and upload it (UTF-8 BOM keeps Sinhala/Tamil intact)
       const csv = XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(normalized));
-      const cleanFile = new File([csv], 'recipients-normalized.csv', { type: 'text/csv' });
+      const cleanFile = new File(['﻿' + csv], 'recipients-normalized.csv', { type: 'text/csv;charset=utf-8' });
       const data = await uploadRecipients(cleanFile);
       setUploadId(data.uploadId);
       setUploadInfo({ ...data, clientSkipped: skipped });
