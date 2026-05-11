@@ -21,6 +21,9 @@ export const sendOne = (number, message) =>
 export const verifyNumber = (number) =>
   api.post('/message/verify-number', { number }).then((r) => r.data);
 
+export const verifyNumbers = (numbers) =>
+  api.post('/message/verify-numbers', { numbers }).then((r) => r.data);
+
 export const uploadRecipients = (file) => {
   const form = new FormData();
   form.append('file', file);

@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Shell from '../components/Shell';
 import Icon from '../components/Icon';
 import { verifyNumber } from '../api/messages';
@@ -59,6 +60,42 @@ export default function VerifyNumbers() {
 
   const handleCancel = () => { cancelRef.current = true; };
 
+  const navigate = useNavigate();
+  const validNumbers = results.filter((r) => r.status === 'verified').map((r) => r.number);
+
+  const keepOnlyValid = () => {
+    if (validNumbers.length === 0) return;
+    setInput(validNumbers.join('\n'));
+    setResults([]);
+  };
+
+  const copyValid = async () => {
+    if (validNumbers.length === 0) return;
+    try {
+      await navigator.clipboard.writeText(validNumbers.join('\n'));
+      alert(`Copied ${validNumbers.length} valid numbers`);
+    } catch {
+      alert('Copy failed');
+    }
+  };
+
+  const downloadValid = () => {
+    if (validNumbers.length === 0) return;
+    const blob = new Blob([validNumbers.join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `valid-numbers-${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const useInSend = () => {
+    if (validNumbers.length === 0) return;
+    sessionStorage.setItem('wawave:verifiedNumbers', JSON.stringify(validNumbers));
+    navigate('/send');
+  };
+
   const pct = Math.round(progress);
   const done = results.filter((r) => r.status !== 'running').length;
 
@@ -70,6 +107,13 @@ export default function VerifyNumbers() {
           <p>Paste numbers below and verify them one by one</p>
         </div>
         <div className="actions">
+          {!running && validNumbers.length > 0 && (
+            <>
+              <button className="btn btn-ghost btn-sm" onClick={copyValid} title="Copy valid numbers">Copy ({validNumbers.length})</button>
+              <button className="btn btn-ghost btn-sm" onClick={downloadValid} title="Download .txt">Download</button>
+              <button className="btn btn-outline btn-sm" onClick={keepOnlyValid} title="Replace input with only valid numbers">Keep valid only</button>
+            </>
+          )}
           {running
             ? <button className="btn btn-outline" onClick={handleCancel}><Icon name="pause" size={14} />Pause</button>
             : <button className="btn btn-accent" onClick={handleVerify} disabled={!input.trim()}><Icon name="check" />Verify numbers</button>}

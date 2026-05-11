@@ -4,6 +4,7 @@ import { getJobs, cancelJob } from '../api/messages';
 
 const STATUS_COLORS = {
   pending: '#FDCB6E',
+  verifying: '#A29BFE',
   running: '#74B9FF',
   completed: '#00B894',
   failed: '#E17055',
@@ -58,7 +59,7 @@ export default function Jobs() {
         {jobs.map((job) => {
           const done = (job.sent || 0) + (job.failed || 0);
           const progress = job.total > 0 ? Math.round((done / job.total) * 100) : 0;
-          const isActive = job.status === 'running' || job.status === 'pending';
+          const isActive = ['running', 'pending', 'verifying'].includes(job.status);
           return (
             <div key={job.id} className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
