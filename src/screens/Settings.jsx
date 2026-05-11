@@ -69,6 +69,7 @@ export default function Settings() {
     batchSize: 18,
     batchPauseMin: 4,
     dailyLimit: 100,
+    simulateTyping: true,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -143,6 +144,44 @@ export default function Settings() {
               <Slider field="dailyLimit" value={settings.dailyLimit} min={1} max={10000} suffix="/day" onChange={handleChange} />
               <div className="text-sm text-gray" style={{ marginTop: 4 }}>Recommended: 800–1500 messages per day for established numbers.</div>
             </Field>
+          </Section>
+
+          <Section title="Human-like behavior" desc="Show a typing indicator to the recipient before sending. Adds 2–7 seconds per message and reduces ban risk.">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={!!settings.simulateTyping}
+                onClick={() => setSettings((s) => ({ ...s, simulateTyping: !s.simulateTyping }))}
+                style={{
+                  width: 44,
+                  height: 24,
+                  borderRadius: 999,
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  position: 'relative',
+                  background: settings.simulateTyping ? '#00B894' : '#DFE6E9',
+                  transition: 'background 0.2s',
+                }}
+              >
+                <span style={{
+                  position: 'absolute',
+                  top: 2,
+                  left: settings.simulateTyping ? 22 : 2,
+                  width: 20,
+                  height: 20,
+                  borderRadius: '50%',
+                  background: 'white',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                  transition: 'left 0.2s',
+                }} />
+              </button>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>Simulate typing</div>
+                <div className="text-sm text-gray">{settings.simulateTyping ? 'On — recipients see "typing…" before each message' : 'Off — messages sent instantly'}</div>
+              </div>
+            </div>
           </Section>
         </>
       )}
