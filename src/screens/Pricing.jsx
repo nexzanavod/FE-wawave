@@ -1,27 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Shell from '../components/Shell';
-import { selectPlan } from '../api/subscription';
+import { startCheckout } from '../api/subscription';
 import { useAuth } from '../context/AuthContext';
 
 const PLANS = [
   {
-    id: 'hobby',
-    name: 'Hobby',
-    price: 'Free',
-    description: 'Great for personal use and testing',
-    features: ['100 messages / day', '1,000 messages / month', 'Basic templates', 'QR connect'],
-    cta: 'Start Free',
-    highlight: false,
-  },
-  {
     id: 'pro',
     name: 'Pro',
     price: '$19/mo',
-    description: 'For businesses that need more power',
-    features: ['300 messages / day', '10,000 messages / month', 'Unlimited templates', 'Priority support', 'Stripe billing (coming soon)'],
-    cta: 'Upgrade to Pro',
+    description: 'For growing businesses',
+    features: ['500 messages / day', '15,000 messages / month', 'Unlimited templates', 'Anti-ban pacing', 'Priority support'],
+    cta: 'Choose Pro',
+    highlight: false,
+  },
+  {
+    id: 'proplus',
+    name: 'Pro Plus',
+    price: '$49/mo',
+    description: 'For high-volume senders',
+    features: ['1,500 messages / day', '50,000 messages / month', 'Everything in Pro', 'Faster support'],
+    cta: 'Choose Pro Plus',
     highlight: true,
+  },
+  {
+    id: 'unlimited',
+    name: 'Unlimited',
+    price: '$99/mo',
+    description: 'No practical limits',
+    features: ['Unlimited daily sends', 'Unlimited monthly sends', 'Everything in Pro Plus', 'Dedicated support'],
+    cta: 'Choose Unlimited',
+    highlight: false,
+  },
+  {
+    id: 'ultra',
+    name: 'Ultra (API)',
+    price: '$199/mo',
+    description: 'API access for developers',
+    features: ['Everything in Unlimited', 'REST API access', 'Programmatic sending', 'Integration support'],
+    cta: 'Choose Ultra',
+    highlight: false,
   },
 ];
 
@@ -31,13 +49,25 @@ export default function Pricing() {
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState('');
 
+  // Returning from Dodo checkout: refresh subscription state (webhook activates the plan).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') === 'success') {
+      refresh();
+      window.history.replaceState({}, '', '/pricing');
+    }
+  }, [refresh]);
+
   const handleSelect = async (planId) => {
     setLoading(planId);
     setError('');
     try {
-      await selectPlan(planId);
-      await refresh();
-      navigate('/');
+      const { checkoutUrl } = await startCheckout(planId);
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl; // redirect to Dodo hosted checkout
+      } else {
+        setError('Could not start checkout. Please try again.');
+      }
     } catch (err) {
       setError(err.response?.data?.error || err.message);
     } finally {
@@ -66,7 +96,7 @@ export default function Pricing() {
               disabled={loading === plan.id || current === plan.id}
               onClick={() => handleSelect(plan.id)}
             >
-              {current === plan.id ? 'Current plan' : loading === plan.id ? 'Saving…' : plan.cta}
+              {current === plan.id ? 'Current plan' : loading === plan.id ? 'Redirecting…' : plan.cta}
             </button>
           </div>
         ))}

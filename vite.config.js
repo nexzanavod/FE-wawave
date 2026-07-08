@@ -10,6 +10,7 @@ export default defineConfig({
       '/message': 'http://localhost:3000',
       '/upload': 'http://localhost:3000',
       '/settings': 'http://localhost:3000',
+      '/subscription': 'http://localhost:3000',
       '/admin': 'http://localhost:3000',
       '/health': 'http://localhost:3000',
     },
